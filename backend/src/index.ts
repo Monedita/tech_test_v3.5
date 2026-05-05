@@ -8,6 +8,9 @@ import config from "./config";
 // Middlewares
 import errorHandler from "./middlewares/errorHandler.middleware";
 
+// Routes
+import routerV1 from "./api/v1/v1.router";
+
 const APP: Express = express();
 const PORT: number = config.port;
 
@@ -17,6 +20,7 @@ APP.use(express.json());
 APP.get("/", (req: Request, res: Response): void => {
   res.send("Server working!");
 });
+APP.use('/v1', routerV1);
 
 // Error handling middleware
 APP.use(errorHandler);
