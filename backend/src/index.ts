@@ -1,35 +1,32 @@
-import type { Response, Request } from "express";
-import type { Express } from "express";
-
-import express from "express";
-
+import app from "./app";
 import config from "./config";
+import { closeDatabaseConnection, connectToDatabase } from "./providers/postgres.provider";
 
-// Middlewares
-import errorHandler from "./middlewares/errorHandler.middleware";
-
-// Routes
-import routerV1 from "./api/v1/v1.router";
-
-const APP: Express = express();
 const PORT: number = config.port;
 
-APP.use(express.json());
+const startServer = async () => {
+  try {
+    await connectToDatabase();
+    console.log('Successfully connected to PostgreSQL');
+    
+    const server = app.listen(PORT, (): void => {
+      console.log(`Server is running at http://localhost:${PORT}`);
+    });
 
-// Routes
-APP.get("/", (req: Request, res: Response): void => {
-  res.send("Server working!");
-});
-APP.use('/v1', routerV1);
+    const shutdown = async (): Promise<void> => {
+      console.log('Shutting down gracefully...');
+      server.close();
+      await closeDatabaseConnection();
+      process.exit(0);
+    };
 
-// Error handling middleware
-APP.use(errorHandler);
+    process.on('SIGINT', () => void shutdown());
+    process.on('SIGTERM', () => void shutdown());
 
-// Start server
-if (require.main === module) {
-  APP.listen(PORT, (): void => {
-    console.log(`Server is running at http://localhost:${PORT}`);
-  });
-}
+  } catch (error: unknown) {
+    console.error('Unable to connect to PostgreSQL', error);
+    process.exit(1);
+  }
+};
 
-export default APP;
+void startServer();
